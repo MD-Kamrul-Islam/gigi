@@ -1,0 +1,6 @@
+# Copy to .env and fill in. Never commit the real file.
+OPENAI_API_KEY=sk-your-key-here
+
+# Optional overrides (defaults come from config.yaml)
+# GIGI_CONFIG=config.yaml
+# GIGI_SETTINGS=settings.json

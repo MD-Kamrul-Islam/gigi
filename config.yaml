@@ -1,0 +1,112 @@
+# =============================================================================
+# Gigi configuration
+# =============================================================================
+# This file controls WHAT Gigi knows and HOW she runs. You edit this, not the
+# Python files. After changing anything under `sources:`, re-run ingest
+# (`python ingest.py`, or the "Rebuild knowledge" button in the admin panel).
+#
+# Gigi's PERSONALITY is not here -- it lives in settings.json and is editable
+# from the admin dashboard, so tone changes never require a redeploy.
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Websites Gigi crawls. Add a new block to teach her a whole new site.
+# -----------------------------------------------------------------------------
+#   label:        Shown to students as the source ("Career Services"). Also
+#                 given to the LLM so it can say which office a page is from.
+#   start_url:    Where the crawl begins.
+#   allowed_domain: Crawler never leaves this domain.
+#   path_prefix:  Optional. Restricts the crawl to one section of a domain
+#                 (e.g. only /careercenter/). Leave blank for the whole site.
+#   blocked_prefixes: Path prefixes the crawler must never enter.
+#   max_pages:    Cap for this source. Keeps crawls and costs predictable.
+#
+# To add Career Services later, uncomment the example block at the bottom and
+# adjust the values -- no code changes needed.
+# -----------------------------------------------------------------------------
+sources:
+  - label: College of Business
+    start_url: https://business.illinoisstate.edu/
+    allowed_domain: business.illinoisstate.edu
+    path_prefix: ""
+    blocked_prefixes:
+      - /alumni
+      - /faculty-staff
+    max_pages: 500
+
+  # ---------------------------------------------------------------------------
+  # EXAMPLES -- delete the leading "#" to switch one on, then re-ingest.
+  # Always set max_pages so one new site can't blow up crawl time or cost.
+  # ---------------------------------------------------------------------------
+  # - label: Career Services
+  #   start_url: https://careercenter.illinoisstate.edu/
+  #   allowed_domain: careercenter.illinoisstate.edu
+  #   path_prefix: ""
+  #   blocked_prefixes: []
+  #   max_pages: 200
+  #
+  # - label: International Student Engagement
+  #   start_url: https://internationalstudies.illinoisstate.edu/
+  #   allowed_domain: internationalstudies.illinoisstate.edu
+  #   path_prefix: ""
+  #   blocked_prefixes: []
+  #   max_pages: 150
+
+# -----------------------------------------------------------------------------
+# Crawler behavior (applies to every source)
+# -----------------------------------------------------------------------------
+crawl:
+  request_delay_seconds: 0.5   # be polite to university servers
+  timeout_seconds: 10
+  min_page_chars: 50           # skip near-empty pages
+
+# -----------------------------------------------------------------------------
+# How pages get split for retrieval. Bigger chunks = more context per answer
+# but less precise matching. 800/150 tested well on the COB site.
+# -----------------------------------------------------------------------------
+chunking:
+  chunk_size: 800
+  chunk_overlap: 150
+  boilerplate_threshold: 0.35  # a line on >35% of a site's pages = nav chrome
+
+# -----------------------------------------------------------------------------
+# Models. Both default to OpenAI's budget tier, which keeps the pilot far
+# under the $10/month ceiling. Swap the chat model here if you ever want
+# better synthesis -- see COSTS in ARCHITECTURE.md before you do.
+# -----------------------------------------------------------------------------
+models:
+  embedding: text-embedding-3-small
+  chat: gpt-5.6-luna
+  # Used for the cheap "rewrite the follow-up question" and "rerank chunks"
+  # steps. Keep this on the cheapest model; it does mechanical work.
+  utility: gpt-5.6-luna
+
+# -----------------------------------------------------------------------------
+# Retrieval quality knobs
+# -----------------------------------------------------------------------------
+retrieval:
+  candidates: 20        # chunks pulled by vector search before reranking
+  top_k: 8              # chunks actually shown to the LLM after reranking
+  max_per_url: 3        # cap chunks from any one page (keeps results diverse)
+  keyword_weight: 0.12  # how much literal word overlap boosts a chunk
+  neighbor_expansion: true   # also include chunks adjacent to a strong hit
+  rerank: true          # let the cheap model pick the most relevant chunks
+  rewrite_followups: true    # turn "how about for STEM?" into a standalone query
+
+# -----------------------------------------------------------------------------
+# Grounding-based confidence indicator (high / medium / low).
+# Derived from retrieval strength, NOT the model's self-reported confidence,
+# which is not reliably calibrated. Tune with real test questions.
+# -----------------------------------------------------------------------------
+confidence:
+  high: 0.62
+  medium: 0.50
+
+# -----------------------------------------------------------------------------
+# Safety rails for cost. The API has no hard spend stop, so these are Gigi's.
+# -----------------------------------------------------------------------------
+limits:
+  max_question_chars: 1000
+  max_answer_tokens: 350
+  max_history_turns: 6      # older turns are dropped, so cost stays flat
+  daily_question_cap: 1500  # refuses politely past this; protects the budget

@@ -1,0 +1,15 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+
+# Generated knowledge base -- rebuilt with `python ingest.py`
+pages.jsonl
+manual_pages.jsonl
+chunks.jsonl
+vector_index.npz
+
+# Runtime data
+feedback.jsonl
+usage.json
+settings.json

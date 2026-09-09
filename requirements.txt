@@ -1,0 +1,8 @@
+requests
+beautifulsoup4
+numpy
+openai
+fastapi
+uvicorn[standard]
+pyyaml
+python-multipart
