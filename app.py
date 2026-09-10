@@ -34,6 +34,9 @@ STATIC_DIR = "static"
 
 app = FastAPI(title="Gigi", docs_url=None, redoc_url=None)
 
+# Admin dashboard API (password-protected in admin.py).
+app.include_router(admin_router)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],   # pilot has no auth; tighten if API and UI split hosts

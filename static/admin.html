@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gigi admin</title>
+<style>
+/* Same GBB palette as the student app, but flipped: the dashboard is a work
+   surface, so it stays quiet and dense while the student page stays warm. */
+:root{
+  --cherry:#990011; --cherry-lift:#B4142A; --ink:#1A1A1A; --cream:#F5F0ED;
+  --panel:#fff; --rule:rgba(26,26,26,.15); --muted:rgba(26,26,26,.6);
+  --ok:#1F6B3A; --warn:#8A5A00;
+  --serif:Cambria,Georgia,"Times New Roman",serif;
+  --sans:Calibri,"Segoe UI",Candara,"Helvetica Neue",Arial,sans-serif;
+  --mono:Consolas,"SF Mono",Menlo,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--cream);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.5}
+button{font:inherit;cursor:pointer}
+h2{font-family:var(--serif);font-size:23px;margin:0 0 4px;font-weight:600}
+.sub{color:var(--muted);font-size:14.5px;margin:0 0 20px;max-width:62ch}
+
+/* login */
+.login{max-width:370px;margin:16vh auto;padding:0 20px}
+.login h1{font-family:var(--serif);font-size:29px;margin:0 0 6px}
+.login p{color:var(--muted);margin:0 0 20px}
+input[type=password],input[type=text]{
+  width:100%;font:inherit;padding:11px 13px;border:1px solid var(--rule);
+  border-radius:9px;background:var(--panel);color:var(--ink)}
+input:focus,textarea:focus{outline:2px solid var(--cherry);outline-offset:1px;border-color:transparent}
+.btn{background:var(--cherry);color:#fff;border:0;border-radius:9px;padding:10px 17px}
+.btn:hover{background:var(--cherry-lift)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--rule)}
+.btn.ghost:hover{background:rgba(26,26,26,.05)}
+.btn.small{padding:5px 11px;font-size:14px}
+.err{color:var(--cherry);font-size:14.5px;margin-top:10px}
+
+/* shell */
+.wrap{display:none;max-width:1020px;margin:0 auto;padding:26px 20px 60px}
+header{display:flex;align-items:center;gap:12px;margin-bottom:22px;flex-wrap:wrap}
+header h1{font-family:var(--serif);font-size:25px;margin:0;font-weight:600}
+header .spacer{flex:1}
+nav{display:flex;gap:5px;border-bottom:1px solid var(--rule);margin-bottom:24px;overflow-x:auto}
+nav button{
+  background:transparent;border:0;border-bottom:2px solid transparent;
+  padding:10px 14px;color:var(--muted);white-space:nowrap}
+nav button[aria-selected=true]{color:var(--cherry);border-bottom-color:var(--cherry)}
+.tab{display:none}
+.tab.on{display:block}
+
+.card{background:var(--panel);border:1px solid var(--rule);border-radius:12px;padding:18px;margin-bottom:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px}
+.stat{background:var(--panel);border:1px solid var(--rule);border-radius:12px;padding:15px}
+.stat .n{font-family:var(--serif);font-size:29px;line-height:1.1}
+.stat .l{font-size:13.5px;color:var(--muted);margin-top:3px}
+.stat.flag .n{color:var(--cherry)}
+
+textarea{
+  width:100%;font-family:var(--mono);font-size:14px;line-height:1.6;
+  border:1px solid var(--rule);border-radius:10px;padding:13px;
+  background:var(--panel);color:var(--ink);resize:vertical}
+label{display:block;font-size:14.5px;margin:14px 0 5px}
+.row{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-top:14px}
+.note{font-size:14px;color:var(--muted);margin-top:9px}
+.flash{border-radius:9px;padding:10px 13px;margin-top:13px;font-size:14.5px}
+.flash.ok{background:rgba(31,107,58,.1);color:var(--ok)}
+.flash.warn{background:rgba(138,90,0,.12);color:var(--warn)}
+.flash.bad{background:rgba(153,0,17,.09);color:var(--cherry)}
+
+table{width:100%;border-collapse:collapse}
+th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--rule);font-size:15px;vertical-align:top}
+th{font-size:13.5px;color:var(--muted);font-weight:400}
+.chipline{display:flex;gap:7px;margin-bottom:7px}
+.chipline input{flex:1}
+
+.report{border:1px solid var(--rule);border-radius:11px;padding:14px;margin-bottom:11px;background:var(--panel)}
+.report.new{border-left:3px solid var(--cherry)}
+.report .q{font-weight:600;margin-bottom:5px}
+.report .a{color:var(--muted);font-size:14.5px;white-space:pre-wrap;
+  max-height:100px;overflow:hidden;margin-bottom:8px}
+.report .c{background:rgba(153,0,17,.06);border-radius:8px;padding:9px 11px;font-size:14.5px;margin-bottom:9px}
+.report .when{font-size:13px;color:var(--muted)}
+
+pre.log{
+  background:var(--ink);color:var(--cream);border-radius:10px;padding:14px;
+  font-family:var(--mono);font-size:13px;max-height:330px;overflow:auto;
+  white-space:pre-wrap;margin:14px 0 0}
+.empty{color:var(--muted);padding:14px 2px}
+:focus-visible{outline:2px solid var(--cherry);outline-offset:2px}
+@media (max-width:640px){.wrap{padding:18px 14px 50px}}
+</style>
+</head>
+<body>
+
+<div class="login" id="login">
+  <h1>Gigi admin</h1>
+  <p>Enter the admin password to manage Gigi.</p>
+  <input type="password" id="pw" placeholder="Password" autocomplete="current-password">
+  <div class="row"><button class="btn" id="loginBtn">Sign in</button></div>
+  <div class="err" id="loginErr"></div>
+</div>
+
+<div class="wrap" id="wrap">
+  <header>
+    <h1>Gigi admin</h1>
+    <span class="spacer"></span>
+    <a class="btn ghost small" href="/" style="text-decoration:none">Open chat</a>
+    <button class="btn ghost small" id="signOut">Sign out</button>
+  </header>
+
+  <nav role="tablist">
+    <button role="tab" data-tab="overview" aria-selected="true">Overview</button>
+    <button role="tab" data-tab="persona" aria-selected="false">Personality</button>
+    <button role="tab" data-tab="docs" aria-selected="false">Documents</button>
+    <button role="tab" data-tab="reports" aria-selected="false">Reports</button>
+  </nav>
+
+  <!-- OVERVIEW -->
+  <section class="tab on" id="tab-overview">
+    <h2>Overview</h2>
+    <p class="sub">How Gigi is doing and what she currently knows.</p>
+    <div class="grid" id="stats"></div>
+
+    <div class="card">
+      <h2>Knowledge base</h2>
+      <p class="sub">Rebuild after adding documents or changing sources in
+        config.yaml. Takes a few minutes and costs a few cents.</p>
+      <div id="sources"></div>
+      <div class="row">
+        <button class="btn" id="rebuildBtn">Rebuild knowledge</button>
+        <span class="note" id="rebuildNote"></span>
+      </div>
+      <pre class="log" id="rebuildLog" style="display:none"></pre>
+    </div>
+  </section>
+
+  <!-- PERSONALITY -->
+  <section class="tab" id="tab-persona">
+    <h2>Personality</h2>
+    <p class="sub">Gigi's instructions for every answer. Changes take effect on
+      the next question — no rebuild, no redeploy. Keep the SCOPE AND BOUNDARIES
+      rules: they're what stop her from inventing answers.</p>
+    <div class="card">
+      <label for="persona">System message</label>
+      <textarea id="persona" rows="22"></textarea>
+      <div class="row">
+        <button class="btn" id="savePersona">Save personality</button>
+        <button class="btn ghost" id="resetPersona">Restore default</button>
+      </div>
+      <div id="personaFlash"></div>
+    </div>
+
+    <div class="card">
+      <h2>Welcome screen</h2>
+      <p class="sub">The greeting and starter questions students see first.</p>
+      <label for="wTitle">Heading</label>
+      <input type="text" id="wTitle">
+      <label for="wMsg">Message</label>
+      <textarea id="wMsg" rows="3" style="font-family:var(--sans);font-size:15.5px"></textarea>
+      <label>Suggested questions</label>
+      <div id="chips"></div>
+      <div class="row">
+        <button class="btn ghost small" id="addChip">Add question</button>
+      </div>
+      <div class="row"><button class="btn" id="saveWelcome">Save welcome screen</button></div>
+      <div id="welcomeFlash"></div>
+    </div>
+  </section>
+
+  <!-- DOCUMENTS -->
+  <section class="tab" id="tab-docs">
+    <h2>Documents</h2>
+    <p class="sub">Your own content, for anything the websites don't cover —
+      the full RSO list, GBB events, career advice. Rebuild after changes.</p>
+
+    <div class="card">
+      <div class="row" style="margin-top:0">
+        <input type="file" id="fileInput" accept=".md,.txt">
+        <button class="btn" id="uploadBtn">Upload</button>
+        <button class="btn ghost" id="newDoc">Write a new document</button>
+      </div>
+      <div id="docsFlash"></div>
+    </div>
+
+    <div class="card" id="editorCard" style="display:none">
+      <label for="docName">File name</label>
+      <input type="text" id="docName" placeholder="rso-list.md">
+      <label for="docBody">Content</label>
+      <textarea id="docBody" rows="16"></textarea>
+      <div class="row">
+        <button class="btn" id="saveDoc">Save document</button>
+        <button class="btn ghost" id="closeEditor">Close</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <table><thead><tr><th>File</th><th>Size</th><th>Updated</th><th></th></tr></thead>
+      <tbody id="docsTable"></tbody></table>
+      <div class="empty" id="docsEmpty" style="display:none">
+        No documents yet. Start with an RSO list that includes Graduate Business Birds.
+      </div>
+    </div>
+  </section>
+
+  <!-- REPORTS -->
+  <section class="tab" id="tab-reports">
+    <h2>Reports</h2>
+    <p class="sub">Answers students marked wrong. Fix one by adding or editing a
+      document with the correct information, then rebuilding.</p>
+    <div class="row" style="margin-top:0">
+      <button class="btn ghost small" data-filter="new" aria-pressed="true">Needs review</button>
+      <button class="btn ghost small" data-filter="down">All reports</button>
+      <button class="btn ghost small" data-filter="up">Liked answers</button>
+    </div>
+    <div id="reports" style="margin-top:16px"></div>
+  </section>
+</div>
+
+<script>
+/* ===========================================================================
+   Admin dashboard. Plain JS, no build step.
+   The password is held in sessionStorage: it clears when the tab closes, and
+   never lands in localStorage where it would persist on a shared machine.
+   =========================================================================== */
+let pw = sessionStorage.getItem('gigi.admin') || '';
+let settings = null, docs = [], reportFilter = 'new';
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+async function api(path, options = {}){
+  const res = await fetch('/api/admin' + path, {
+    ...options,
+    headers: {'Authorization':'Bearer ' + pw,
+              ...(options.body && !(options.body instanceof FormData)
+                  ? {'Content-Type':'application/json'} : {}),
+              ...(options.headers || {})},
+  });
+  if(res.status === 401){ signOut(); throw new Error('Wrong password'); }
+  if(!res.ok){
+    let detail = 'Request failed';
+    try{ detail = (await res.json()).detail || detail; }catch{}
+    throw new Error(detail);
+  }
+  return res.json();
+}
+
+function flash(el, message, kind='ok'){
+  el.innerHTML = `<div class="flash ${kind}">${esc(message)}</div>`;
+  if(kind === 'ok') setTimeout(() => { el.innerHTML = ''; }, 4000);
+}
+
+/* ---------- auth ---------- */
+async function signIn(password){
+  pw = password;
+  await api('/login', {method:'POST'});
+  sessionStorage.setItem('gigi.admin', pw);
+  $('login').style.display = 'none';
+  $('wrap').style.display = 'block';
+  loadAll();
+}
+function signOut(){
+  pw = ''; sessionStorage.removeItem('gigi.admin');
+  $('wrap').style.display = 'none';
+  $('login').style.display = 'block';
+}
+$('loginBtn').onclick = async () => {
+  $('loginErr').textContent = '';
+  try{ await signIn($('pw').value); }
+  catch(e){ $('loginErr').textContent = e.message; }
+};
+$('pw').addEventListener('keydown', e => { if(e.key === 'Enter') $('loginBtn').click(); });
+$('signOut').onclick = signOut;
+
+/* ---------- tabs ---------- */
+document.querySelectorAll('nav button').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('nav button').forEach(b =>
+      b.setAttribute('aria-selected', String(b === btn)));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
+    $('tab-' + btn.dataset.tab).classList.add('on');
+    if(btn.dataset.tab === 'reports') loadReports();
+    if(btn.dataset.tab === 'docs') loadDocs();
+    if(btn.dataset.tab === 'overview') loadStats();
+  };
+});
+
+/* ---------- overview ---------- */
+async function loadStats(){
+  const s = await api('/stats');
+  const built = s.index_built ? new Date(s.index_built).toLocaleDateString() : 'never';
+  $('stats').innerHTML = `
+    ${stat(s.questions_today + ' / ' + (s.daily_cap ?? '—'), 'Questions today')}
+    ${stat(s.thumbs_up, 'Helpful')}
+    ${stat(s.thumbs_down, 'Reported wrong')}
+    ${stat(s.unresolved_reports, 'Needs review', s.unresolved_reports > 0)}
+    ${stat(s.chunks.toLocaleString(), 'Pieces of knowledge')}
+    ${stat(s.docs, 'Your documents')}`;
+  $('sources').innerHTML = `
+    <table><thead><tr><th>Source</th><th>Domain</th><th>Page limit</th></tr></thead><tbody>
+    ${s.sources.map(x => `<tr><td>${esc(x.label)}</td><td>${esc(x.domain)}</td>
+      <td>${esc(x.max_pages)}</td></tr>`).join('')}
+    </tbody></table>
+    <p class="note">Last rebuilt: ${built}. Add sources by editing config.yaml.</p>`;
+}
+const stat = (n, l, flag=false) =>
+  `<div class="stat ${flag?'flag':''}"><div class="n">${esc(n)}</div><div class="l">${esc(l)}</div></div>`;
+
+$('rebuildBtn').onclick = async () => {
+  $('rebuildBtn').disabled = true;
+  $('rebuildLog').style.display = 'block';
+  $('rebuildLog').textContent = 'Starting…';
+  try{
+    await api('/rebuild', {method:'POST'});
+    pollRebuild();
+  }catch(e){
+    $('rebuildNote').textContent = e.message;
+    $('rebuildBtn').disabled = false;
+  }
+};
+async function pollRebuild(){
+  try{
+    const s = await api('/rebuild/status');
+    $('rebuildLog').textContent = (s.log || []).join('\n') || 'Working…';
+    $('rebuildLog').scrollTop = $('rebuildLog').scrollHeight;
+    if(s.running){
+      $('rebuildNote').textContent = 'Rebuilding — this can take a few minutes.';
+      setTimeout(pollRebuild, 2000);
+    }else{
+      $('rebuildNote').textContent = s.ok
+        ? 'Done. Gigi is using the new content now.'
+        : 'Rebuild failed — check the log above.';
+      $('rebuildBtn').disabled = false;
+      loadStats();
+    }
+  }catch(e){
+    $('rebuildNote').textContent = e.message;
+    $('rebuildBtn').disabled = false;
+  }
+}
+
+/* ---------- personality ---------- */
+async function loadSettings(){
+  settings = await api('/settings');
+  $('persona').value = settings.persona;
+  $('wTitle').value = settings.welcome_title;
+  $('wMsg').value = settings.welcome_message;
+  renderChips(settings.suggested_questions || []);
+}
+function renderChips(list){
+  $('chips').innerHTML = '';
+  list.forEach(q => addChipRow(q));
+}
+function addChipRow(value=''){
+  const row = document.createElement('div');
+  row.className = 'chipline';
+  const input = document.createElement('input');
+  input.type = 'text'; input.value = value;
+  const del = document.createElement('button');
+  del.className = 'btn ghost small'; del.textContent = 'Remove';
+  del.onclick = () => row.remove();
+  row.append(input, del);
+  $('chips').appendChild(row);
+}
+$('addChip').onclick = () => addChipRow();
+
+function currentSettingsPayload(){
+  return {
+    persona: $('persona').value,
+    welcome_title: $('wTitle').value,
+    welcome_message: $('wMsg').value,
+    suggested_questions: [...$('chips').querySelectorAll('input')]
+      .map(i => i.value.trim()).filter(Boolean),
+  };
+}
+async function saveSettings(flashEl){
+  try{
+    const res = await api('/settings', {method:'PUT',
+      body: JSON.stringify(currentSettingsPayload())});
+    if(res.warnings && res.warnings.length){
+      flash(flashEl, 'Saved — but check this: ' + res.warnings.join(' '), 'warn');
+    }else{
+      flash(flashEl, 'Saved. Gigi uses this from her next answer.');
+    }
+  }catch(e){ flash(flashEl, e.message, 'bad'); }
+}
+$('savePersona').onclick = () => saveSettings($('personaFlash'));
+$('saveWelcome').onclick = () => saveSettings($('welcomeFlash'));
+$('resetPersona').onclick = async () => {
+  if(!confirm('Replace the current personality with the tested default?')) return;
+  const res = await api('/settings/reset-persona', {method:'POST'});
+  $('persona').value = res.persona;
+  flash($('personaFlash'), 'Default personality restored.');
+};
+
+/* ---------- documents ---------- */
+async function loadDocs(){
+  const res = await api('/docs');
+  docs = res.docs;
+  $('docsEmpty').style.display = docs.length ? 'none' : 'block';
+  $('docsTable').innerHTML = docs.map(d => `
+    <tr>
+      <td>${esc(d.name)}</td>
+      <td>${(d.bytes/1024).toFixed(1)} KB</td>
+      <td>${new Date(d.modified).toLocaleDateString()}</td>
+      <td style="white-space:nowrap">
+        <button class="btn ghost small" data-edit="${esc(d.name)}">Edit</button>
+        <button class="btn ghost small" data-del="${esc(d.name)}">Delete</button>
+      </td>
+    </tr>`).join('');
+  $('docsTable').querySelectorAll('[data-edit]').forEach(b =>
+    b.onclick = () => openDoc(b.dataset.edit));
+  $('docsTable').querySelectorAll('[data-del]').forEach(b =>
+    b.onclick = () => deleteDoc(b.dataset.del));
+}
+async function openDoc(name){
+  const doc = await api('/docs/' + encodeURIComponent(name));
+  $('docName').value = doc.name;
+  $('docBody').value = doc.content;
+  $('editorCard').style.display = 'block';
+  $('editorCard').scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+$('newDoc').onclick = () => {
+  $('docName').value = ''; $('docBody').value = '';
+  $('editorCard').style.display = 'block';
+  $('docName').focus();
+};
+$('closeEditor').onclick = () => { $('editorCard').style.display = 'none'; };
+$('saveDoc').onclick = async () => {
+  try{
+    await api('/docs', {method:'PUT', body: JSON.stringify({
+      name: $('docName').value.trim(), content: $('docBody').value})});
+    $('editorCard').style.display = 'none';
+    flash($('docsFlash'), 'Saved. Rebuild the knowledge base to put it into Gigi.', 'warn');
+    loadDocs();
+  }catch(e){ flash($('docsFlash'), e.message, 'bad'); }
+};
+async function deleteDoc(name){
+  if(!confirm(`Delete ${name}? Gigi keeps using it until the next rebuild.`)) return;
+  await api('/docs/' + encodeURIComponent(name), {method:'DELETE'});
+  flash($('docsFlash'), 'Deleted. Rebuild to remove it from Gigi.', 'warn');
+  loadDocs();
+}
+$('uploadBtn').onclick = async () => {
+  const file = $('fileInput').files[0];
+  if(!file){ flash($('docsFlash'), 'Choose a .md or .txt file first.', 'bad'); return; }
+  const form = new FormData(); form.append('file', file);
+  try{
+    await api('/docs/upload', {method:'POST', body: form});
+    $('fileInput').value = '';
+    flash($('docsFlash'), 'Uploaded. Rebuild the knowledge base to put it into Gigi.', 'warn');
+    loadDocs();
+  }catch(e){ flash($('docsFlash'), e.message, 'bad'); }
+};
+
+/* ---------- reports ---------- */
+document.querySelectorAll('[data-filter]').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('[data-filter]').forEach(b =>
+      b.setAttribute('aria-pressed', String(b === btn)));
+    reportFilter = btn.dataset.filter;
+    loadReports();
+  };
+});
+async function loadReports(){
+  const query = reportFilter === 'new' ? '?rating=down&status=new'
+              : reportFilter === 'down' ? '?rating=down' : '?rating=up';
+  const res = await api('/feedback' + query);
+  if(!res.feedback.length){
+    $('reports').innerHTML = `<div class="empty">${
+      reportFilter === 'new' ? 'Nothing to review. ' : 'Nothing here yet.'}</div>`;
+    return;
+  }
+  $('reports').innerHTML = res.feedback.map(r => `
+    <div class="report ${r.status === 'new' && r.rating === 'down' ? 'new' : ''}">
+      <div class="q">${esc(r.question)}</div>
+      <div class="a">${esc(r.answer)}</div>
+      ${r.comment ? `<div class="c"><strong>Student said:</strong> ${esc(r.comment)}</div>` : ''}
+      <div class="row" style="margin-top:0">
+        <span class="when">${new Date(r.timestamp).toLocaleString()}</span>
+        ${r.rating === 'down' && r.status === 'new'
+          ? `<button class="btn ghost small" data-resolve="${r.id}">Mark handled</button>` : ''}
+      </div>
+    </div>`).join('');
+  $('reports').querySelectorAll('[data-resolve]').forEach(b => b.onclick = async () => {
+    await api('/feedback/status', {method:'PUT',
+      body: JSON.stringify({id: Number(b.dataset.resolve), status:'resolved'})});
+    loadReports(); loadStats();
+  });
+}
+
+/* ---------- boot ---------- */
+async function loadAll(){
+  try{ await Promise.all([loadStats(), loadSettings(), loadDocs()]); }
+  catch(e){ console.error(e); }
+}
+if(pw){ signIn(pw).catch(signOut); }
+</script>
+</body>
+</html>
