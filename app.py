@@ -25,6 +25,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+from admin import router as admin_router
 from gigi_chat import answer_question
 from settings import cfg, load_settings
 
