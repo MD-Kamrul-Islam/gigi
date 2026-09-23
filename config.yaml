@@ -35,7 +35,7 @@ sources:
     max_pages: 500
 
 sources:
-  - label: College of Business
+  - label: Career Services
     start_url: https://careerservices.illinoisstate.edu/
     allowed_domain: careerservices.illinoisstate.edu
     path_prefix: ""
@@ -43,7 +43,7 @@ sources:
     max_pages: 500
 
 sources:
-  - label: College of Business
+  - label: Catalog
     start_url: https://catalog.illinoisstate.edu/
     allowed_domain: catalog.illinoisstate.edu
     path_prefix: ""
