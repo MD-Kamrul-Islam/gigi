@@ -83,6 +83,22 @@ th{font-size:13.5px;color:var(--muted);font-weight:400}
 .report .c{background:rgba(153,0,17,.06);border-radius:8px;padding:9px 11px;font-size:14.5px;margin-bottom:9px}
 .report .when{font-size:13px;color:var(--muted)}
 
+.result{border:1px solid var(--rule);border-radius:11px;padding:14px;margin-bottom:11px;background:var(--panel)}
+.result .q{font-weight:600;margin-bottom:6px}
+.result .a{white-space:pre-wrap;font-size:15px;margin-bottom:8px}
+.badge{display:inline-block;font-size:12.5px;padding:2px 8px;border-radius:20px;
+  border:1px solid var(--rule);color:var(--muted)}
+.badge.high{border-color:var(--ok);color:var(--ok)}
+.badge.low{border-color:var(--cherry);color:var(--cherry)}
+.correction{border:1px solid var(--rule);border-radius:11px;padding:13px;margin-bottom:10px}
+.correction .cq{font-weight:600}
+.correction .ca{font-size:15px;color:var(--muted);margin:5px 0 8px;white-space:pre-wrap}
+.datafile{border:1px solid var(--rule);border-radius:11px;padding:13px;margin-bottom:10px}
+.datafile .dname{font-weight:600}
+.cols{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0}
+.col{font-size:12.5px;padding:2px 8px;border-radius:20px;border:1px solid var(--rule);color:var(--muted)}
+.col.ok{border-color:var(--ok);color:var(--ok)}
+.inlineform{border-top:1px solid var(--rule);margin-top:11px;padding-top:11px}
 pre.log{
   background:var(--ink);color:var(--cream);border-radius:10px;padding:14px;
   font-family:var(--mono);font-size:13px;max-height:330px;overflow:auto;
@@ -110,11 +126,19 @@ pre.log{
     <button class="btn ghost small" id="signOut">Sign out</button>
   </header>
 
+  <div id="pendingBanner" class="flash warn" style="display:none;margin-bottom:18px">
+    <strong>Rebuild needed.</strong> <span id="pendingReason"></span>
+    Gigi keeps using the old content until you rebuild.
+    <button class="btn small" id="pendingRebuild" style="margin-left:8px">Rebuild now</button>
+  </div>
+
   <nav role="tablist">
     <button role="tab" data-tab="overview" aria-selected="true">Overview</button>
     <button role="tab" data-tab="persona" aria-selected="false">Personality</button>
     <button role="tab" data-tab="docs" aria-selected="false">Documents</button>
     <button role="tab" data-tab="reports" aria-selected="false">Reports</button>
+    <button role="tab" data-tab="corrections" aria-selected="false">Corrections</button>
+    <button role="tab" data-tab="testing" aria-selected="false">Testing</button>
   </nav>
 
   <!-- OVERVIEW -->
@@ -202,6 +226,27 @@ pre.log{
         No documents yet. Start with an RSO list that includes Graduate Business Birds.
       </div>
     </div>
+
+    <h2 style="margin-top:30px">Data files (CSV)</h2>
+    <p class="sub">Spreadsheets where each ROW is its own entry -- course
+      catalogs, scholarship lists, event schedules. Different from documents
+      above, where each FILE is one entry. Rebuild after changes.</p>
+
+    <div class="card">
+      <div class="row" style="margin-top:0">
+        <input type="file" id="csvInput" accept=".csv">
+        <input type="text" id="csvLabel" placeholder="Cite as, e.g. ISU Course Catalog"
+               style="max-width:260px">
+        <button class="btn" id="uploadCsv">Upload CSV</button>
+      </div>
+      <p class="note">The "cite as" name is what students see as the source.
+        Give each dataset its own name.</p>
+      <div id="csvFlash"></div>
+    </div>
+
+    <div class="card">
+      <div id="csvList"></div>
+    </div>
   </section>
 
   <!-- REPORTS -->
@@ -215,6 +260,55 @@ pre.log{
       <button class="btn ghost small" data-filter="up">Liked answers</button>
     </div>
     <div id="reports" style="margin-top:16px"></div>
+  </section>
+
+  <!-- CORRECTIONS -->
+  <section class="tab" id="tab-corrections">
+    <h2>Corrections</h2>
+    <p class="sub">Answers you have verified. These outrank the scraped website,
+      so they are how you fix a wrong answer for good. Rebuild after changes.</p>
+
+    <div class="card">
+      <label for="cQuestion">Question (word it the way students would ask)</label>
+      <input type="text" id="cQuestion" placeholder="is there an analytics club?">
+      <label for="cAnswer">Correct answer</label>
+      <textarea id="cAnswer" rows="4" style="font-family:var(--sans);font-size:15.5px"
+        placeholder="Yes -- the Business Analytics Society meets..."></textarea>
+      <label for="cLink">Link (optional)</label>
+      <input type="text" id="cLink" placeholder="https://business.illinoisstate.edu/...">
+      <label for="cNote">Private note (optional, not shown to students)</label>
+      <input type="text" id="cNote" placeholder="from student report, Mar 2027">
+      <div class="row">
+        <button class="btn" id="saveCorrection">Save correction</button>
+        <button class="btn ghost" id="clearCorrection">Clear</button>
+      </div>
+      <div id="correctionFlash"></div>
+    </div>
+
+    <div class="card">
+      <div id="correctionsList"></div>
+    </div>
+  </section>
+
+  <!-- TESTING -->
+  <section class="tab" id="tab-testing">
+    <h2>Testing</h2>
+    <p class="sub">Keep your standard question set here and run it after any
+      change. Same questions every time is what makes a change measurable
+      instead of a guess. A run costs roughly a cent.</p>
+
+    <div class="card">
+      <label>Test questions (one per line)</label>
+      <textarea id="testQuestions" rows="9"
+        placeholder="What student organizations can I join?&#10;How do I contact my advisor?"></textarea>
+      <div class="row">
+        <button class="btn" id="runTests">Run all questions</button>
+        <button class="btn ghost" id="saveTests">Save list</button>
+        <span class="note" id="testNote"></span>
+      </div>
+    </div>
+
+    <div id="testResults"></div>
   </section>
 </div>
 
@@ -283,8 +377,10 @@ document.querySelectorAll('nav button').forEach(btn => {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
     $('tab-' + btn.dataset.tab).classList.add('on');
     if(btn.dataset.tab === 'reports') loadReports();
-    if(btn.dataset.tab === 'docs') loadDocs();
+    if(btn.dataset.tab === 'docs'){ loadDocs(); loadCsvFiles(); }
     if(btn.dataset.tab === 'overview') loadStats();
+    if(btn.dataset.tab === 'corrections') loadCorrections();
+    if(btn.dataset.tab === 'testing') loadTestQuestions();
   };
 });
 
@@ -298,7 +394,9 @@ async function loadStats(){
     ${stat(s.thumbs_down, 'Reported wrong')}
     ${stat(s.unresolved_reports, 'Needs review', s.unresolved_reports > 0)}
     ${stat(s.chunks.toLocaleString(), 'Pieces of knowledge')}
-    ${stat(s.docs, 'Your documents')}`;
+    ${stat(s.docs, 'Your documents')}
+    ${stat(s.corrections ?? 0, 'Corrections')}
+    ${stat(s.data_files ?? 0, 'Data files')}`;
   $('sources').innerHTML = `
     <table><thead><tr><th>Source</th><th>Domain</th><th>Page limit</th></tr></thead><tbody>
     ${s.sources.map(x => `<tr><td>${esc(x.label)}</td><td>${esc(x.domain)}</td>
@@ -334,7 +432,7 @@ async function pollRebuild(){
         ? 'Done. Gigi is using the new content now.'
         : 'Rebuild failed — check the log above.';
       $('rebuildBtn').disabled = false;
-      loadStats();
+      loadStats(); checkPending();
     }
   }catch(e){
     $('rebuildNote').textContent = e.message;
@@ -456,6 +554,72 @@ $('uploadBtn').onclick = async () => {
   }catch(e){ flash($('docsFlash'), e.message, 'bad'); }
 };
 
+/* ---------- data files (CSV) ---------- */
+async function loadCsvFiles(){
+  const res = await api('/catalog');
+  if(!res.files.length){
+    $('csvList').innerHTML = '<div class="empty">No data files yet. '
+      + 'A course catalog CSV is a good first one.</div>';
+    return;
+  }
+  $('csvList').innerHTML = res.files.map(f => `
+    <div class="datafile">
+      <div class="dname">${esc(f.name)}</div>
+      <div class="when">${f.rows.toLocaleString()} rows &middot; cited as
+        <strong>${esc(f.label)}</strong> &middot; ${(f.bytes/1024).toFixed(0)} KB</div>
+      ${f.error ? `<div class="flash bad">${esc(f.error)}</div>` : `
+        <div class="cols">
+          ${Object.entries(f.matched).map(([field, col]) =>
+            `<span class="col ok">${esc(field)} = ${esc(col)}</span>`).join('')}
+          ${f.unmatched.slice(0,6).map(c =>
+            `<span class="col">${esc(c)}</span>`).join('')}
+          ${f.unmatched.length > 6 ? `<span class="col">+${f.unmatched.length-6} more</span>` : ''}
+        </div>
+        <div class="note">Green columns were recognised. Grey ones are still
+          included as extra detail.</div>`}
+      <div class="row" style="margin-top:9px">
+        <button class="btn ghost small" data-relabel="${esc(f.name)}"
+          data-current="${esc(f.label)}">Rename source</button>
+        <button class="btn ghost small" data-csvdel="${esc(f.name)}">Delete</button>
+      </div>
+    </div>`).join('');
+
+  $('csvList').querySelectorAll('[data-relabel]').forEach(b => b.onclick = async () => {
+    const label = prompt('How should students see this source cited?', b.dataset.current);
+    if(!label) return;
+    try{
+      await api('/catalog/label', {method:'PUT',
+        body: JSON.stringify({name: b.dataset.relabel, label})});
+      loadCsvFiles(); checkPending();
+    }catch(e){ flash($('csvFlash'), e.message, 'bad'); }
+  });
+  $('csvList').querySelectorAll('[data-csvdel]').forEach(b => b.onclick = async () => {
+    if(!confirm(`Delete ${b.dataset.csvdel}? Gigi keeps using it until the next rebuild.`)) return;
+    await api('/catalog/' + encodeURIComponent(b.dataset.csvdel), {method:'DELETE'});
+    flash($('csvFlash'), 'Deleted. Rebuild to remove it from Gigi.', 'warn');
+    loadCsvFiles(); loadStats(); checkPending();
+  });
+}
+
+$('uploadCsv').onclick = async () => {
+  const file = $('csvInput').files[0];
+  if(!file){ flash($('csvFlash'), 'Choose a .csv file first.', 'bad'); return; }
+  const form = new FormData();
+  form.append('file', file);
+  form.append('label', $('csvLabel').value.trim());
+  $('uploadCsv').disabled = true;
+  try{
+    const r = await api('/catalog/upload', {method:'POST', body: form});
+    $('csvInput').value = ''; $('csvLabel').value = '';
+    const matched = Object.keys(r.matched).join(', ');
+    flash($('csvFlash'),
+      `Loaded ${r.rows.toLocaleString()} rows. Recognised: ${matched}. `
+      + `Rebuild the knowledge base to make it live.`, 'warn');
+    loadCsvFiles(); loadStats(); checkPending();
+  }catch(e){ flash($('csvFlash'), e.message, 'bad'); }
+  finally{ $('uploadCsv').disabled = false; }
+};
+
 /* ---------- reports ---------- */
 document.querySelectorAll('[data-filter]').forEach(btn => {
   btn.onclick = () => {
@@ -481,10 +645,61 @@ async function loadReports(){
       ${r.comment ? `<div class="c"><strong>Student said:</strong> ${esc(r.comment)}</div>` : ''}
       <div class="row" style="margin-top:0">
         <span class="when">${new Date(r.timestamp).toLocaleString()}</span>
+        ${r.rating === 'down'
+          ? `<button class="btn small" data-fix="${r.id}">Write correction</button>` : ''}
+        <button class="btn ghost small" data-verify="${r.id}">Ask Gigi again</button>
         ${r.rating === 'down' && r.status === 'new'
           ? `<button class="btn ghost small" data-resolve="${r.id}">Mark handled</button>` : ''}
       </div>
+      <div class="inlineform" data-form="${r.id}" style="display:none"></div>
     </div>`).join('');
+
+  // Write a correction without leaving this tab: the student's question is
+  // pre-filled, and saving also marks the report handled.
+  $('reports').querySelectorAll('[data-fix]').forEach(b => b.onclick = () => {
+    const id = b.dataset.fix;
+    const row = res.feedback.find(x => String(x.id) === id);
+    const box = $('reports').querySelector(`[data-form="${id}"]`);
+    if(box.style.display === 'block'){ box.style.display = 'none'; return; }
+    box.style.display = 'block';
+    box.innerHTML = `
+      <label>Correct answer</label>
+      <textarea rows="4" style="font-family:var(--sans);font-size:15.5px"></textarea>
+      <label>Link (optional)</label>
+      <input type="text" placeholder="https://...">
+      <div class="row">
+        <button class="btn small" data-save>Save correction</button>
+        <span class="note">Marks this report handled. Rebuild to make it live.</span>
+      </div>`;
+    box.querySelector('[data-save]').onclick = async () => {
+      const answer = box.querySelector('textarea').value.trim();
+      const link = box.querySelector('input').value.trim();
+      if(!answer){ alert('Write the correct answer first.'); return; }
+      try{
+        await api('/corrections', {method:'POST', body: JSON.stringify({
+          question: row.question, answer, link,
+          note: 'from student report', feedback_id: row.id})});
+        box.innerHTML = '<div class="flash ok">Saved. Rebuild to make it live.</div>';
+        loadReports(); loadStats(); checkPending();
+      }catch(e){ box.innerHTML = `<div class="flash bad">${esc(e.message)}</div>`; }
+    };
+  });
+
+  // Re-ask the question against the live index -- confirms a fix landed.
+  $('reports').querySelectorAll('[data-verify]').forEach(b => b.onclick = async () => {
+    const id = b.dataset.verify;
+    const row = res.feedback.find(x => String(x.id) === id);
+    const box = $('reports').querySelector(`[data-form="${id}"]`);
+    box.style.display = 'block';
+    box.innerHTML = '<div class="note">Asking Gigi...</div>';
+    try{
+      const r2 = await api('/ask', {method:'POST',
+        body: JSON.stringify({question: row.question})});
+      box.innerHTML = `<div class="note">Gigi answers now:</div>
+        <div class="a" style="white-space:pre-wrap;margin-top:6px">${esc(r2.answer)}</div>
+        <span class="badge ${esc(r2.confidence)}">${esc(r2.confidence)} confidence</span>`;
+    }catch(e){ box.innerHTML = `<div class="flash bad">${esc(e.message)}</div>`; }
+  });
   $('reports').querySelectorAll('[data-resolve]').forEach(b => b.onclick = async () => {
     await api('/feedback/status', {method:'PUT',
       body: JSON.stringify({id: Number(b.dataset.resolve), status:'resolved'})});
@@ -492,9 +707,131 @@ async function loadReports(){
   });
 }
 
+/* ---------- corrections ---------- */
+let editingCorrection = null;
+
+async function loadCorrections(){
+  const res = await api('/corrections');
+  const list = res.corrections;
+  if(!list.length){
+    $('correctionsList').innerHTML =
+      '<div class="empty">No corrections yet. When a student reports a wrong '
+      + 'answer, write the right one here and it will override the website.</div>';
+    return;
+  }
+  $('correctionsList').innerHTML = list.map(c => `
+    <div class="correction">
+      <div class="cq">${esc(c.question)}</div>
+      <div class="ca">${esc(c.answer)}</div>
+      ${c.link ? `<div class="when"><a href="${esc(c.link)}" target="_blank" rel="noopener">${esc(c.link)}</a></div>` : ''}
+      <div class="row" style="margin-top:8px">
+        <span class="when">${c.note ? esc(c.note) + ' - ' : ''}${new Date(c.created).toLocaleDateString()}</span>
+        <button class="btn ghost small" data-cedit="${c.id}">Edit</button>
+        <button class="btn ghost small" data-cdel="${c.id}">Delete</button>
+      </div>
+    </div>`).join('');
+
+  $('correctionsList').querySelectorAll('[data-cedit]').forEach(b => b.onclick = () => {
+    const c = list.find(x => String(x.id) === b.dataset.cedit);
+    editingCorrection = c.id;
+    $('cQuestion').value = c.question; $('cAnswer').value = c.answer;
+    $('cLink').value = c.link || ''; $('cNote').value = c.note || '';
+    $('saveCorrection').textContent = 'Update correction';
+    $('cQuestion').scrollIntoView({behavior:'smooth', block:'center'});
+  });
+  $('correctionsList').querySelectorAll('[data-cdel]').forEach(b => b.onclick = async () => {
+    if(!confirm('Delete this correction? Gigi keeps using it until the next rebuild.')) return;
+    await api('/corrections/' + b.dataset.cdel, {method:'DELETE'});
+    loadCorrections(); loadStats(); checkPending();
+  });
+}
+
+function clearCorrectionForm(){
+  editingCorrection = null;
+  ['cQuestion','cAnswer','cLink','cNote'].forEach(id => $(id).value = '');
+  $('saveCorrection').textContent = 'Save correction';
+}
+$('clearCorrection').onclick = clearCorrectionForm;
+
+$('saveCorrection').onclick = async () => {
+  const body = JSON.stringify({
+    question: $('cQuestion').value.trim(), answer: $('cAnswer').value.trim(),
+    link: $('cLink').value.trim(), note: $('cNote').value.trim()});
+  try{
+    if(editingCorrection){
+      await api('/corrections/' + editingCorrection, {method:'PUT', body});
+    }else{
+      await api('/corrections', {method:'POST', body});
+    }
+    flash($('correctionFlash'), 'Saved. Rebuild the knowledge base to make it live.', 'warn');
+    clearCorrectionForm(); loadCorrections(); loadStats(); checkPending();
+  }catch(e){ flash($('correctionFlash'), e.message, 'bad'); }
+};
+
+/* ---------- testing ---------- */
+async function loadTestQuestions(){
+  const res = await api('/test-questions');
+  if(res.questions.length) $('testQuestions').value = res.questions.join('\n');
+}
+function testQuestionList(){
+  return $('testQuestions').value.split('\n').map(q => q.trim()).filter(Boolean);
+}
+$('saveTests').onclick = async () => {
+  await api('/test-questions', {method:'PUT',
+    body: JSON.stringify({questions: testQuestionList()})});
+  $('testNote').textContent = 'Question list saved.';
+};
+$('runTests').onclick = async () => {
+  const questions = testQuestionList();
+  if(!questions.length){ $('testNote').textContent = 'Add some questions first.'; return; }
+  $('runTests').disabled = true;
+  $('testResults').innerHTML = '';
+  try{
+    await api('/test-questions', {method:'PUT', body: JSON.stringify({questions})});
+    await api('/test-run', {method:'POST', body: JSON.stringify({questions})});
+    pollTests();
+  }catch(e){
+    $('testNote').textContent = e.message;
+    $('runTests').disabled = false;
+  }
+};
+async function pollTests(){
+  try{
+    const s = await api('/test-run/status');
+    $('testNote').textContent = s.running
+      ? `Running ${s.results.length} of ${s.total}...`
+      : `Done - ${s.results.length} answers.`;
+    $('testResults').innerHTML = s.results.map(r => `
+      <div class="result">
+        <div class="q">${esc(r.question)}</div>
+        <div class="a">${esc(r.answer)}</div>
+        <span class="badge ${esc(r.confidence)}">${esc(r.confidence)} confidence</span>
+        ${(r.sources||[]).map(x => `<div class="when">${esc(x.source||'')}: ${esc(x.url)}</div>`).join('')}
+      </div>`).join('');
+    if(s.running) setTimeout(pollTests, 1500);
+    else $('runTests').disabled = false;
+  }catch(e){
+    $('testNote').textContent = e.message;
+    $('runTests').disabled = false;
+  }
+}
+
+/* ---------- pending rebuild ---------- */
+async function checkPending(){
+  try{
+    const s = await api('/pending');
+    $('pendingBanner').style.display = s.pending ? 'block' : 'none';
+    $('pendingReason').textContent = s.reason || '';
+  }catch{}
+}
+$('pendingRebuild').onclick = () => {
+  document.querySelector('nav button[data-tab="overview"]').click();
+  $('rebuildBtn').click();
+};
+
 /* ---------- boot ---------- */
 async function loadAll(){
-  try{ await Promise.all([loadStats(), loadSettings(), loadDocs()]); }
+  try{ await Promise.all([loadStats(), loadSettings(), loadDocs(), loadCsvFiles(), checkPending()]); }
   catch(e){ console.error(e); }
 }
 if(pw){ signIn(pw).catch(signOut); }

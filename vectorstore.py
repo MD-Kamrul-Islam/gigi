@@ -23,6 +23,7 @@ import os
 import numpy as np
 from openai import OpenAI
 
+from corrections import CORRECTION_LABEL
 from settings import cfg
 
 CHUNKS_FILE = "chunks.jsonl"
@@ -118,6 +119,11 @@ def _load_index() -> dict:
                        np.array([""] * len(data["urls"]), dtype=object),
             "chunk_indices": data["chunk_indices"] if "chunk_indices" in data else
                              np.zeros(len(data["urls"]), dtype=np.int32),
+            "is_correction": np.array(
+                [1.0 if str(s) == CORRECTION_LABEL else 0.0
+                 for s in (data["sources"] if "sources" in data
+                           else [""] * len(data["urls"]))],
+                dtype=np.float32),
             "haystacks": [
                 (str(data["titles"][i]) + "\n" + str(data["texts"][i])).lower()
                 for i in range(len(data["urls"]))
@@ -163,6 +169,14 @@ def search(query: str, top_k: int | None = None,
 
     scores = _cosine_similarity(query_vec, data["vectors"])
     scores = scores + keyword_weight * _keyword_overlap(query, data["haystacks"])
+
+    # Admin-verified corrections get a boost so they outrank the scraped page
+    # that produced the wrong answer in the first place. Without this, a
+    # correction is just one more voice in the noise. Tune in config.yaml;
+    # set to 0 to switch the behaviour off entirely.
+    boost = float(cfg("retrieval", "correction_boost", 0.10))
+    if boost:
+        scores = scores + boost * data["is_correction"]
 
     results = []
     per_url: dict[str, int] = {}

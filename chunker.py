@@ -23,7 +23,8 @@ from collections import Counter
 
 from settings import cfg
 
-INPUT_FILES = ["pages.jsonl", "manual_pages.jsonl"]
+INPUT_FILES = ["pages.jsonl", "manual_pages.jsonl", "corrections_pages.jsonl",
+               "catalog_pages.jsonl"]
 OUTPUT_FILE = "chunks.jsonl"
 MIN_PAGES_FOR_BOILERPLATE = 10
 
@@ -113,9 +114,10 @@ def build_chunks():
             by_source.setdefault(page.get("source", "Unknown"), []).append(page)
 
         for label, source_pages in by_source.items():
-            # Manual documents are hand-written; nothing to strip.
-            boilerplate = (set() if input_file == "manual_pages.jsonl"
-                           else find_boilerplate_lines(source_pages, threshold_ratio))
+            # Only scraped pages have repeated site chrome. Manual documents
+            # and corrections are hand-written; nothing to strip.
+            boilerplate = (find_boilerplate_lines(source_pages, threshold_ratio)
+                           if input_file == "pages.jsonl" else set())
             if boilerplate:
                 print(f"  {label}: stripping {len(boilerplate)} boilerplate lines")
 

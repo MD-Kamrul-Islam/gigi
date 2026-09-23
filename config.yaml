@@ -53,6 +53,26 @@ sources:
   #   max_pages: 150
 
 # -----------------------------------------------------------------------------
+# Catalog CSV data (course listings, or any row-based dataset)
+# -----------------------------------------------------------------------------
+# Drop .csv files into catalog_csv/ and re-ingest. Each ROW becomes its own
+# retrievable entry, so one course stays one clean, complete chunk.
+#
+# Column names are auto-detected from common spellings. Only add a `columns:`
+# mapping if the ingest log says a column wasn't recognised -- the value on the
+# right is the exact header text in your CSV.
+# -----------------------------------------------------------------------------
+catalog:
+  label: ISU Catalog          # how Gigi cites these entries to students
+  # columns:
+  #   code: "Course"
+  #   title: "Course Title"
+  #   description: "Catalog Description"
+  #   credits: "Credit Hours"
+  #   prerequisites: "Prerequisite(s)"
+  #   department: "Subject"
+
+# -----------------------------------------------------------------------------
 # Crawler behavior (applies to every source)
 # -----------------------------------------------------------------------------
 crawl:
@@ -92,6 +112,10 @@ retrieval:
   neighbor_expansion: true   # also include chunks adjacent to a strong hit
   rerank: true          # let the cheap model pick the most relevant chunks
   rewrite_followups: true    # turn "how about for STEM?" into a standalone query
+  # How much admin-verified corrections outrank scraped pages. Corrections are
+  # answers you wrote after a student reported a wrong one, so they should win.
+  # Raise if corrections aren't surfacing; set to 0 to disable the preference.
+  correction_boost: 0.10
 
 # -----------------------------------------------------------------------------
 # Grounding-based confidence indicator (high / medium / low).

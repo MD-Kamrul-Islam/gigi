@@ -16,3 +16,10 @@ settings.json
 
 # Local development backups
 gigi_chat.py.*
+
+catalog_pages.jsonl
+corrections_pages.jsonl
+pending_rebuild.json
+
+catalog_csv/
+catalog_labels.json

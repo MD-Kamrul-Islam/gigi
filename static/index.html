@@ -114,7 +114,11 @@ button{font:inherit;color:inherit;cursor:pointer}
 }
 .gigi-avatar svg{width:18px;height:18px}
 .gigi-body{flex:1;min-width:0}
-.answer{white-space:pre-wrap;word-wrap:break-word}
+.answer{word-wrap:break-word}
+.answer strong{font-weight:600}
+.answer ul,.answer ol{margin:7px 0;padding-left:22px}
+.answer li{margin:3px 0}
+.answer code{background:rgba(26,26,26,.07);border-radius:4px;padding:1px 5px;font-size:.92em}
 .answer a{color:var(--cherry);text-decoration:underline;text-underline-offset:2px}
 
 .sources{margin-top:13px;border-top:1px solid var(--rule);padding-top:11px}
@@ -297,10 +301,55 @@ function activeChat(){ return chats.find(c => c.id === activeId); }
 function escapeHtml(s){
   return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
-// Answers arrive as plain text with bare URLs; make those clickable.
-function linkify(text){
-  return escapeHtml(text).replace(/(https?:\/\/[^\s<]+[^\s<.,;:)\]])/g,
+// Gigi sometimes replies with markdown (**bold**, [text](url), bullet lists).
+// Render a small, safe subset of it. HTML is escaped FIRST, so nothing the
+// model writes can inject markup -- only our own tags are added afterwards.
+function renderAnswer(text){
+  let out = escapeHtml(text);
+
+  // Markdown links [label](url) -> parked as placeholders so the bare-URL
+  // pass below doesn't try to linkify the URL inside them a second time.
+  const parked = [];
+  out = out.replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/g, (m, label, url) => {
+    parked.push(`<a href="${url}" target="_blank" rel="noopener">${label}</a>`);
+    return `\u0000${parked.length - 1}\u0000`;
+  });
+
+  // Bare URLs.
+  out = out.replace(/(https?:\/\/[^\s<]+[^\s<.,;:)\]])/g,
     '<a href="$1" target="_blank" rel="noopener">$1</a>');
+
+  // A leftover [label] with no URL is a half-written link, not prose --
+  // show the words without the brackets rather than something that looks broken.
+  out = out.replace(/\[([^\]\n]+)\]/g, '$1');
+
+  out = out.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
+  out = out.replace(/(^|[^*\w])\*([^*\n]+)\*(?![*\w])/g, '$1<em>$2</em>');
+  out = out.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+
+  // Bullet / numbered lines -> real list items, so they indent properly.
+  const lines = out.split('\n');
+  let html = '', list = null;
+  const close = () => { if(list){ html += `</${list}>`; list = null; } };
+  for(const line of lines){
+    const bullet  = line.match(/^\s*[-*•]\s+(.*)$/);
+    const numbered = line.match(/^\s*\d+[.)]\s+(.*)$/);
+    if(bullet){
+      if(list !== 'ul'){ close(); html += '<ul>'; list = 'ul'; }
+      html += `<li>${bullet[1]}</li>`;
+    }else if(numbered){
+      if(list !== 'ol'){ close(); html += '<ol>'; list = 'ol'; }
+      html += `<li>${numbered[1]}</li>`;
+    }else if(line.trim() === ''){
+      close(); html += '<br>';
+    }else{
+      close(); html += line + '<br>';
+    }
+  }
+  close();
+  out = html.replace(/(<br>)+$/, '');
+
+  return out.replace(/\u0000(\d+)\u0000/g, (m, i) => parked[Number(i)]);
 }
 
 function renderRecents(){
@@ -379,7 +428,7 @@ function gigiNode(m, index){
 
   const answer = document.createElement('div');
   answer.className = 'answer';
-  answer.innerHTML = linkify(m.content);
+  answer.innerHTML = renderAnswer(m.content);
   body.appendChild(answer);
 
   if(m.sources && m.sources.length){
