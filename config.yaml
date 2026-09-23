@@ -34,6 +34,21 @@ sources:
       - /faculty-staff
     max_pages: 500
 
+sources:
+  - label: College of Business
+    start_url: https://careerservices.illinoisstate.edu/
+    allowed_domain: careerservices.illinoisstate.edu
+    path_prefix: ""
+    blocked_prefixes: []
+    max_pages: 500
+
+sources:
+  - label: College of Business
+    start_url: https://catalog.illinoisstate.edu/
+    allowed_domain: catalog.illinoisstate.edu
+    path_prefix: ""
+    blocked_prefixes: []
+    max_pages: 500
   # ---------------------------------------------------------------------------
   # EXAMPLES -- delete the leading "#" to switch one on, then re-ingest.
   # Always set max_pages so one new site can't blow up crawl time or cost.
