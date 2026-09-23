@@ -24,6 +24,8 @@
 # To add Career Services later, uncomment the example block at the bottom and
 # adjust the values -- no code changes needed.
 # -----------------------------------------------------------------------------
+# ONE "sources:" key, with one "- label:" block per website underneath.
+# Repeating the "sources:" key would silently keep only the last block.
 sources:
   - label: College of Business
     start_url: https://business.illinoisstate.edu/
@@ -34,16 +36,14 @@ sources:
       - /faculty-staff
     max_pages: 500
 
-sources:
   - label: Career Services
     start_url: https://careerservices.illinoisstate.edu/
     allowed_domain: careerservices.illinoisstate.edu
     path_prefix: ""
     blocked_prefixes: []
-    max_pages: 500
+    max_pages: 300
 
-sources:
-  - label: Catalog
+  - label: ISU Course Catalog
     start_url: https://catalog.illinoisstate.edu/
     allowed_domain: catalog.illinoisstate.edu
     path_prefix: ""
